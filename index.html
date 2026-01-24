@@ -13,9 +13,11 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="animations.css">
 </head>
 
 <body>
+    <div class="scanlines"></div>
     <!-- Navigation -->
     <nav class="navbar">
         <div class="nav-container">
@@ -53,12 +55,10 @@
             </div>
             <h1 class="hero-title">
                 <span class="animate-fade-up delay-1">Building the</span>
-                <span class="gradient-text animate-fade-up delay-2">Future</span>
+                <span class="gradient-text animate-fade-up delay-2 glitch-text" data-text="Future">Future</span>
                 <span class="animate-fade-up delay-3">with Robotics</span>
             </h1>
-            <p class="hero-subtitle animate-fade-up delay-4">
-                University of Lucknow's premier robotics club. Where innovation meets engineering excellence.
-            </p>
+            <p class="hero-subtitle animate-fade-up delay-4 typing-text"></p>
             <div class="hero-buttons animate-fade-up delay-5">
                 <a href="#projects" class="btn btn-primary">
                     <span>Explore Projects</span>

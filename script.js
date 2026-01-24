@@ -9,7 +9,68 @@ document.addEventListener('DOMContentLoaded', () => {
     initCounterAnimation();
     initFormHandler();
     initParallax();
+    initTypingEffect();
+    initTiltEffect();
 });
+
+// ==========================================
+// TYPING EFFECT
+// ==========================================
+function initTypingEffect() {
+    const text = "University of Lucknow's premier robotics club. Where innovation meets engineering excellence.";
+    const element = document.querySelector('.typing-text');
+    if (!element) return;
+
+    element.textContent = '';
+    element.classList.add('typing-cursor');
+
+    let index = 0;
+
+    setTimeout(() => {
+        const typeInterval = setInterval(() => {
+            if (index < text.length) {
+                element.textContent += text.charAt(index);
+                index++;
+            } else {
+                clearInterval(typeInterval);
+                // Blink cursor for 3 more seconds then remove
+                setTimeout(() => {
+                    element.classList.remove('typing-cursor');
+                }, 3000);
+            }
+        }, 30); // Typing speed
+    }, 1500); // Initial delay
+}
+
+// ==========================================
+// 3D TILT EFFECT
+// ==========================================
+function initTiltEffect() {
+    const cards = document.querySelectorAll('.glass');
+
+    cards.forEach(card => {
+        card.classList.add('tilt-card');
+
+        // Wrap content if needed, but for now apply to card directly
+        card.addEventListener('mousemove', (e) => {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+
+            const rotateX = ((y - centerY) / centerY) * -10; // Max 10deg rotation
+            const rotateY = ((x - centerX) / centerX) * 10;
+
+            card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+        });
+
+        card.addEventListener('mouseleave', () => {
+            card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale3d(1, 1, 1)';
+        });
+    });
+}
 
 // ==========================================
 // SCROLL-TRIGGERED ANIMATIONS
@@ -48,10 +109,10 @@ function initMobileMenu() {
     if (toggle) {
         toggle.addEventListener('click', () => {
             toggle.classList.toggle('active');
-            
+
             // Create mobile menu if it doesn't exist
             let mobileMenu = document.querySelector('.mobile-menu');
-            
+
             if (!mobileMenu) {
                 mobileMenu = document.createElement('div');
                 mobileMenu.className = 'mobile-menu';
@@ -124,10 +185,10 @@ function initMobileMenu() {
 // ==========================================
 function initSmoothScroll() {
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function(e) {
+        anchor.addEventListener('click', function (e) {
             e.preventDefault();
             const target = document.querySelector(this.getAttribute('href'));
-            
+
             if (target) {
                 const headerOffset = 80;
                 const elementPosition = target.getBoundingClientRect().top;
@@ -147,7 +208,7 @@ function initSmoothScroll() {
 // ==========================================
 function initCounterAnimation() {
     const counters = document.querySelectorAll('.stat-number');
-    
+
     const observerOptions = {
         threshold: 0.5
     };
@@ -188,29 +249,29 @@ function animateCounter(element, target) {
 // ==========================================
 function initFormHandler() {
     const form = document.getElementById('contactForm');
-    
+
     if (form) {
         form.addEventListener('submit', (e) => {
             e.preventDefault();
-            
+
             // Get form data
             const formData = new FormData(form);
             const data = Object.fromEntries(formData);
-            
+
             // Simulate form submission
             const btn = form.querySelector('button[type="submit"]');
             const originalText = btn.innerHTML;
-            
+
             btn.innerHTML = '<span>Sending...</span>';
             btn.disabled = true;
-            
+
             setTimeout(() => {
                 btn.innerHTML = '<span>Message Sent! ✓</span>';
                 btn.style.background = 'linear-gradient(135deg, #22c55e, #16a34a)';
-                
+
                 // Reset form
                 form.reset();
-                
+
                 setTimeout(() => {
                     btn.innerHTML = originalText;
                     btn.style.background = '';
@@ -226,16 +287,16 @@ function initFormHandler() {
 // ==========================================
 function initParallax() {
     const orbs = document.querySelectorAll('.glow-orb');
-    
+
     document.addEventListener('mousemove', (e) => {
         const x = (e.clientX / window.innerWidth - 0.5) * 2;
         const y = (e.clientY / window.innerHeight - 0.5) * 2;
-        
+
         orbs.forEach((orb, index) => {
             const speed = (index + 1) * 15;
             const xOffset = x * speed;
             const yOffset = y * speed;
-            
+
             orb.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
         });
     });
@@ -246,7 +307,7 @@ function initParallax() {
 // ==========================================
 window.addEventListener('scroll', () => {
     const navbar = document.querySelector('.navbar');
-    
+
     if (window.scrollY > 100) {
         navbar.style.background = 'rgba(10, 10, 15, 0.95)';
         navbar.style.boxShadow = '0 4px 30px rgba(0, 0, 0, 0.3)';
@@ -274,12 +335,12 @@ function initCursorGlow() {
         transition: opacity 0.3s ease;
     `;
     document.body.appendChild(cursor);
-    
+
     document.addEventListener('mousemove', (e) => {
         cursor.style.left = e.clientX + 'px';
         cursor.style.top = e.clientY + 'px';
     });
-    
+
     document.addEventListener('mouseenter', () => cursor.style.opacity = '1');
     document.addEventListener('mouseleave', () => cursor.style.opacity = '0');
 }
