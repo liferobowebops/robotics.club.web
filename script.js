@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initParallax();
     initTypingEffect();
     initTiltEffect();
+    initThreeJSBackground();
 });
 
 // ==========================================
@@ -309,10 +310,10 @@ window.addEventListener('scroll', () => {
     const navbar = document.querySelector('.navbar');
 
     if (window.scrollY > 100) {
-        navbar.style.background = 'rgba(10, 10, 15, 0.95)';
+        navbar.style.background = 'rgba(10, 10, 15, 0.9)';
         navbar.style.boxShadow = '0 4px 30px rgba(0, 0, 0, 0.3)';
     } else {
-        navbar.style.background = 'rgba(10, 10, 15, 0.8)';
+        navbar.style.background = 'rgba(10, 10, 15, 0.7)';
         navbar.style.boxShadow = 'none';
     }
 });
@@ -346,4 +347,375 @@ function initCursorGlow() {
 }
 
 // Uncomment to enable cursor glow effect
-// initCursorGlow();
+initCursorGlow();
+
+// ==========================================
+// THREE.JS HERO BACKGROUND (OPTIMIZED)
+// ==========================================
+function initThreeJSBackground() {
+    const canvas = document.getElementById('hero-canvas');
+    if (!canvas) return;
+
+    // --- SCENE SETUP ---
+    const scene = new THREE.Scene();
+    // Adjusted camera for a better isometric-style view
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 12, 25);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ 
+        canvas: canvas, 
+        alpha: true, 
+        antialias: true,
+        powerPreference: "high-performance" 
+    });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Cap pixel ratio for performance
+
+    // --- SHARED RESOURCES (PERFORMANCE OPTIMIZATION) ---
+    // Create geometries and materials ONCE here, reuse them later.
+    
+    // Materials
+    const gridColor = 0x6366f1;
+    const orangeColor = 0xff6b35;
+    const cyanColor = 0x4ecdc4;
+    const darkColor = 0x333333;
+
+    const mainMaterial = new THREE.LineBasicMaterial({ color: orangeColor, transparent: true, opacity: 0.8 });
+    const cyanMaterial = new THREE.LineBasicMaterial({ color: cyanColor, transparent: true, opacity: 0.8 });
+    const wheelMaterial = new THREE.LineBasicMaterial({ color: darkColor, transparent: true, opacity: 0.6 });
+
+    // Geometries
+    const carBodyGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(2, 0.8, 1));
+    const wheelGeo = new THREE.EdgesGeometry(new THREE.CylinderGeometry(0.2, 0.2, 0.1, 8));
+    
+    // Arm Geometries
+    const baseGeo = new THREE.EdgesGeometry(new THREE.CylinderGeometry(1, 1.2, 0.5, 16));
+    const segmentGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(0.3, 2, 0.3));
+    const gripperGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(0.8, 0.4, 0.2));
+
+    // --- ENVIRONMENT ---
+    const gridHelper = new THREE.GridHelper(100, 20, gridColor, gridColor);
+    gridHelper.position.y = -10;
+    gridHelper.material.opacity = 0.15;
+    gridHelper.material.transparent = true;
+    scene.add(gridHelper);
+
+    // Particles
+    const particleCount = 50; // Reduced density
+    const particleGeometry = new THREE.BufferGeometry();
+    const pPositions = new Float32Array(particleCount * 3);
+    const pColors = new Float32Array(particleCount * 3);
+    const pSpeeds = new Float32Array(particleCount); // Store individual speeds
+
+    for (let i = 0; i < particleCount; i++) {
+        pPositions[i * 3] = (Math.random() - 0.5) * 60;
+        pPositions[i * 3 + 1] = (Math.random() - 0.5) * 30;
+        pPositions[i * 3 + 2] = (Math.random() - 0.5) * 60;
+
+        pColors[i * 3] = 0.6 + Math.random() * 0.4;
+        pColors[i * 3 + 1] = 0.4 + Math.random() * 0.4;
+        pColors[i * 3 + 2] = 1.0;
+        
+        pSpeeds[i] = 0.02 + Math.random() * 0.05;
+    }
+
+    particleGeometry.setAttribute('position', new THREE.BufferAttribute(pPositions, 3));
+    particleGeometry.setAttribute('color', new THREE.BufferAttribute(pColors, 3));
+    const particles = new THREE.Points(particleGeometry, new THREE.PointsMaterial({
+        size: 0.15, vertexColors: true, transparent: true, opacity: 0.6
+    }));
+    scene.add(particles);
+
+    // --- ROBOTIC ARM ---
+    const armGroup = new THREE.Group();
+    const base = new THREE.LineSegments(baseGeo, mainMaterial);
+    armGroup.add(base);
+
+    // Create segments with pivots for better animation
+    const lowerArm = new THREE.Group();
+    const lowerArmMesh = new THREE.LineSegments(segmentGeo, cyanMaterial);
+    lowerArmMesh.position.y = 1; // Half length
+    lowerArm.add(lowerArmMesh);
+    lowerArm.position.y = 0.25; // On top of base
+    armGroup.add(lowerArm);
+
+    const upperArm = new THREE.Group();
+    const upperArmMesh = new THREE.LineSegments(segmentGeo, cyanMaterial);
+    upperArmMesh.position.y = 1;
+    upperArm.add(upperArmMesh);
+    upperArm.position.y = 2; // Length of lower arm
+    lowerArmMesh.add(upperArm);
+
+    const gripper = new THREE.LineSegments(gripperGeo, mainMaterial);
+    gripper.position.y = 2; // Length of upper arm
+    upperArmMesh.add(gripper);
+
+    armGroup.position.set(20, -8, 20); // Corner placement
+    scene.add(armGroup);
+
+    // --- ROBOT CARS ---
+    const robotCars = [];
+    const wheelPositions = [
+        [-0.8, -0.3, 0.4], [0.8, -0.3, 0.4], [-0.8, -0.3, -0.4], [0.8, -0.3, -0.4]
+    ];
+
+    // Car materials - greenish and sky bluish for first two cars, orange for others
+    const greenMaterial = new THREE.LineBasicMaterial({ color: 0x4ade80, transparent: true, opacity: 0.8 });
+    const blueMaterial = new THREE.LineBasicMaterial({ color: 0x0ea5e9, transparent: true, opacity: 0.8 });
+
+    // Helper to generate a random target on the grid
+    const getRandomTarget = () => {
+        return new THREE.Vector3(
+            (Math.floor(Math.random() * 8) - 4) * 5, // Snap to 5-unit grid
+            -9.5,
+            (Math.floor(Math.random() * 8) - 4) * 5
+        );
+    };
+
+    for (let i = 0; i < 4; i++) {
+        const carGroup = new THREE.Group();
+        // Use new colors for first two cars, original orange for the other two
+        const carMaterial = i < 2 ? (i === 0 ? greenMaterial : blueMaterial) : mainMaterial;
+        const carBody = new THREE.LineSegments(carBodyGeo, carMaterial);
+        carGroup.add(carBody);
+
+        const carWheels = [];
+        wheelPositions.forEach(pos => {
+            const wheel = new THREE.LineSegments(wheelGeo, wheelMaterial);
+            wheel.position.set(pos[0], pos[1], pos[2]);
+            wheel.rotation.z = Math.PI / 2;
+            carGroup.add(wheel);
+            carWheels.push(wheel);
+        });
+
+        // Initialize positions widely spread
+        const startPos = getRandomTarget();
+        carGroup.position.copy(startPos);
+
+        // Physics/Movement Data
+        carGroup.userData = {
+            velocity: new THREE.Vector3(),
+            speed: 0.02 + Math.random() * 0.03,
+            target: getRandomTarget(),
+            wheels: carWheels,
+            state: 'moving' // moving, turning, waiting
+        };
+
+        scene.add(carGroup);
+        robotCars.push(carGroup);
+    }
+
+    // --- ANIMATION LOOP ---
+    const clock = new THREE.Clock();
+
+    function animate() {
+        requestAnimationFrame(animate);
+
+        const time = Date.now() * 0.001;
+        const delta = clock.getDelta(); // Use delta for smooth movement regardless of framerate
+
+        // 1. Animate Particles
+        const positions = particles.geometry.attributes.position.array;
+        for (let i = 0; i < particleCount; i++) {
+            positions[i * 3 + 1] += Math.sin(time + positions[i * 3]) * 0.02; // Organic floating
+        }
+        particles.geometry.attributes.position.needsUpdate = true;
+
+        // 2. Animate Arm (Enhanced Robotic Movement)
+        // Create dynamic targets for the arm to reach
+        if (!armGroup.userData || !armGroup.userData.targetPos) {
+            armGroup.userData = {
+                targetPos: new THREE.Vector3(15, -6, 15),
+                phase: 'scanning',
+                phaseTime: 0,
+                pickPos: new THREE.Vector3(15, -9, 15),
+                placePos: new THREE.Vector3(25, -6, 25)
+            };
+        }
+
+        const armData = armGroup.userData;
+        armData.phaseTime += delta;
+
+        // Update target based on phase
+        let currentTarget = new THREE.Vector3(15, -6, 15); // Default fallback
+        switch (armData.phase) {
+            case 'scanning':
+                // Scan around looking for work
+                armData.targetPos.set(
+                    20 + Math.sin(time * 0.3) * 8,
+                    -6 + Math.sin(time * 0.5) * 2,
+                    20 + Math.cos(time * 0.3) * 8
+                );
+                currentTarget.copy(armData.targetPos);
+                if (armData.phaseTime > 3) {
+                    armData.phase = 'reaching';
+                    armData.phaseTime = 0;
+                }
+                break;
+            case 'reaching':
+                // Reach down to pick up
+                armData.targetPos.copy(armData.pickPos);
+                currentTarget.copy(armData.targetPos);
+                if (armData.phaseTime > 1.5) {
+                    armData.phase = 'grasping';
+                    armData.phaseTime = 0;
+                }
+                break;
+            case 'grasping':
+                // Close gripper and lift
+                armData.targetPos.set(15, -4, 15);
+                currentTarget.copy(armData.targetPos);
+                if (armData.phaseTime > 1) {
+                    armData.phase = 'transporting';
+                    armData.phaseTime = 0;
+                }
+                break;
+            case 'transporting':
+                // Move to place position
+                armData.targetPos.copy(armData.placePos);
+                currentTarget.copy(armData.targetPos);
+                if (armData.phaseTime > 2) {
+                    armData.phase = 'placing';
+                    armData.phaseTime = 0;
+                }
+                break;
+            case 'placing':
+                // Lower down to place
+                armData.targetPos.set(25, -8, 25);
+                currentTarget.copy(armData.targetPos);
+                if (armData.phaseTime > 1) {
+                    armData.phase = 'scanning';
+                    armData.phaseTime = 0;
+                }
+                break;
+        }
+
+        // Simple inverse kinematics for 3-joint arm
+        const armBase = new THREE.Vector3().copy(armGroup.position);
+        const targetVector = new THREE.Vector3().subVectors(currentTarget, armBase);
+
+        // Base rotation to face target
+        const baseAngle = Math.atan2(targetVector.x, targetVector.z);
+        armGroup.rotation.y += (baseAngle - armGroup.rotation.y) * 0.02;
+
+        // Calculate arm segment angles (2D IK in XZ plane)
+        const targetDist = Math.sqrt(targetVector.x * targetVector.x + targetVector.z * targetVector.z);
+        const targetHeight = targetVector.y;
+
+        // Arm segment lengths (approximate based on geometry)
+        const l1 = 2; // lower arm length
+        const l2 = 2; // upper arm length
+
+        // 2D inverse kinematics for shoulder and elbow
+        if (targetDist > 0.1 && targetDist < l1 + l2) {
+            // Distance from shoulder to target in XZ plane
+            const r = targetDist;
+
+            // Elbow angle (θ2) using law of cosines
+            const cosElbow = (r * r + l1 * l1 - l2 * l2) / (2 * r * l1);
+            const elbowAngle = Math.acos(Math.max(-1, Math.min(1, cosElbow)));
+
+            // Shoulder angle (θ1) - angle to target
+            const shoulderToTarget = Math.atan2(targetVector.z, targetVector.x);
+
+            // Shoulder angle adjustment
+            const cosShoulder = (l1 * l1 + r * r - l2 * l2) / (2 * l1 * r);
+            const shoulderAngle = shoulderToTarget - Math.acos(Math.max(-1, Math.min(1, cosShoulder)));
+
+            // Apply angles with smoothing (convert to local rotations)
+            const currentLowerAngle = lowerArm.rotation.z;
+            const currentUpperAngle = upperArm.rotation.z;
+
+            // For proper IK, we need to set absolute angles, not incremental
+            lowerArm.rotation.z = shoulderAngle;
+            upperArm.rotation.z = elbowAngle - Math.PI; // Adjust for coordinate system
+        }
+
+        // Add some secondary motion for realism
+        lowerArm.rotation.x = Math.sin(time * 1.5 + armData.phaseTime) * 0.05;
+        upperArm.rotation.x = Math.sin(time * 2 + armData.phaseTime) * 0.03;
+
+        // Animate gripper based on phase
+        const gripperOpen = (armData.phase === 'scanning' || armData.phase === 'placing') ? 0.2 : 0;
+        gripper.rotation.z += (gripperOpen - gripper.rotation.z) * 0.1;
+
+        // Add subtle base movement
+        armGroup.position.y = -8 + Math.sin(time * 0.8) * 0.1;
+
+        // 3. Animate Cars
+        robotCars.forEach(car => {
+            const data = car.userData;
+            const pos = car.position;
+            const target = data.target;
+
+            // Distance to target
+            const dist = pos.distanceTo(target);
+
+            // If we reached the target (or are very close), pick a new one
+            if (dist < 1) {
+                data.target = getRandomTarget();
+                // Ensure new target isn't the same as current position
+                while (data.target.distanceTo(pos) < 5) {
+                    data.target = getRandomTarget();
+                }
+            }
+
+            // --- MOVEMENT LOGIC (Steering) ---
+            
+            // Calculate direction vector to target
+            const direction = new THREE.Vector3().subVectors(target, pos).normalize();
+            
+            // Calculate desired angle
+            const targetRotation = Math.atan2(direction.x, direction.z); // Math.atan2(x, z) for Y-axis rotation
+
+            // Smoothly rotate car to face target (Interpolation)
+            // Determine shortest rotation path
+            let rotDiff = targetRotation - car.rotation.y;
+            // Normalize angle to -PI to PI
+            while (rotDiff > Math.PI) rotDiff -= Math.PI * 2;
+            while (rotDiff < -Math.PI) rotDiff += Math.PI * 2;
+            
+            car.rotation.y += rotDiff * 0.05; // Turn speed (lower is smoother)
+
+            // Move forward based on current rotation (Tank controls style)
+            const forwardDir = new THREE.Vector3(Math.sin(car.rotation.y), 0, Math.cos(car.rotation.y));
+            
+            // Collision Avoidance (Simple Repulsion)
+            let repulsion = new THREE.Vector3();
+            robotCars.forEach(otherCar => {
+                if (car === otherCar) return;
+                const d = car.position.distanceTo(otherCar.position);
+                if (d < 4) { // Too close
+                    const push = new THREE.Vector3().subVectors(car.position, otherCar.position).normalize();
+                    repulsion.add(push.multiplyScalar(0.05)); // Push away strength
+                }
+            });
+
+            // Apply movement
+            car.position.add(forwardDir.multiplyScalar(data.speed));
+            car.position.add(repulsion);
+
+            // Wheel rotation
+            data.wheels.forEach(w => w.rotation.x -= data.speed * 5);
+
+            // Bobbing effect
+            car.position.y = -9.5 + Math.sin(time * 5 + car.id) * 0.05;
+        });
+
+        // Camera Orbit (Subtle)
+        camera.position.x = Math.sin(time * 0.1) * 25;
+        camera.position.z = Math.cos(time * 0.1) * 25;
+        camera.lookAt(0, -2, 0);
+
+        renderer.render(scene, camera);
+    }
+
+    animate();
+
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+}
