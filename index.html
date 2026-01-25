@@ -14,6 +14,7 @@
         rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="animations.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 
 <body>
@@ -47,6 +48,7 @@
             <div class="grid-lines"></div>
             <div class="glow-orb orb-1"></div>
             <div class="glow-orb orb-2"></div>
+            <canvas id="hero-canvas"></canvas>
         </div>
         <div class="hero-content">
             <div class="hero-badge animate-fade-up">
@@ -154,9 +156,42 @@
                 <h2 class="section-title animate-on-scroll">Featured <span class="gradient-text">Projects</span></h2>
             </div>
             <div class="bento-grid">
+
                 <div class="bento-item large glass animate-on-scroll">
                     <div class="project-image">
-                        <div class="project-placeholder">🦾</div>
+                        <div class="project-placeholder">
+                            <svg class="project-svg" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"
+                                aria-hidden="true">
+                               
+
+                                <g fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                                    <path class="muted" d="M12 56H52M18 56V50H46V56" />
+                                    <circle cx="32" cy="50" r="4" class="muted spin-base" stroke-dasharray="2 2" />
+
+                                    <g class="arm-lower">
+                                        <path class="accent" d="M32 50V34" />
+                                        <circle class="accent" cx="32" cy="34" r="3" />
+
+                                        <g class="arm-upper">
+                                            <path class="accent" d="M32 34L46 20" />
+
+                                            <g class="wrist-assembly">
+                                                <circle class="accent" cx="46" cy="20" r="2.5" />
+                                                <path class="accent" d="M46 20L52 20" />
+                                                <path class="accent" d="M52 16V24" />
+
+                                                <g class="finger-top">
+                                                    <path class="accent" d="M52 16L58 14" />
+                                                </g>
+                                                <g class="finger-bottom">
+                                                    <path class="accent" d="M52 24L58 26" />
+                                                </g>
+                                            </g>
+                                        </g>
+                                    </g>
+                                </g>
+                            </svg>
+                        </div>
                     </div>
                     <div class="project-info">
                         <span class="project-tag">Automation</span>
@@ -164,9 +199,28 @@
                         <p>6-DOF robotic arm with computer vision for precise object manipulation and sorting.</p>
                     </div>
                 </div>
+
                 <div class="bento-item glass animate-on-scroll">
                     <div class="project-image">
-                        <div class="project-placeholder">🚗</div>
+                        <div class="project-placeholder">
+                            <svg class="project-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"
+                                aria-hidden="true">
+                                <g fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                                    <path class="accent" d="M10 40H54L50 28H14L10 40Z" />
+                                    <path class="muted" d="M14 28L18 20H46L50 28" />
+                                    <circle class="accent spin" cx="18" cy="44" r="5"
+                                        style="transform-origin: 18px 44px;" />
+                                    <circle class="accent spin" cx="46" cy="44" r="5"
+                                        style="transform-origin: 46px 44px;" />
+                                    <circle class="muted" cx="18" cy="44" r="2" />
+                                    <circle class="muted" cx="46" cy="44" r="2" />
+                                    <path class="muted pulse" d="M26 14C26 14 32 10 38 14" />
+                                    <path class="accent pulse" d="M22 10C22 10 32 4 42 10"
+                                        style="animation-delay: 0.2s" />
+                                    <rect x="28" y="16" width="8" height="4" class="accent" />
+                                </g>
+                            </svg>
+                        </div>
                     </div>
                     <div class="project-info">
                         <span class="project-tag">Navigation</span>
@@ -174,9 +228,32 @@
                         <p>Line-following robot with obstacle avoidance.</p>
                     </div>
                 </div>
+
                 <div class="bento-item glass animate-on-scroll">
                     <div class="project-image">
-                        <div class="project-placeholder">🚁</div>
+                        <div class="project-placeholder">
+                            <svg class="project-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"
+                                aria-hidden="true">
+                                <g fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="32" cy="32" r="6" class="accent" />
+                                    <circle cx="32" cy="32" r="3" class="muted" />
+                                    <path class="muted" d="M32 32L16 16" />
+                                    <path class="muted" d="M32 32L48 16" />
+                                    <path class="muted" d="M32 32L16 48" />
+                                    <path class="muted" d="M32 32L48 48" />
+                                    <circle cx="16" cy="16" r="6" class="accent spin"
+                                        style="transform-origin: 16px 16px;" stroke-dasharray="4 4" />
+                                    <circle cx="48" cy="16" r="6" class="accent spin"
+                                        style="transform-origin: 48px 16px; animation-direction: reverse;"
+                                        stroke-dasharray="4 4" />
+                                    <circle cx="16" cy="48" r="6" class="accent spin"
+                                        style="transform-origin: 16px 48px; animation-direction: reverse;"
+                                        stroke-dasharray="4 4" />
+                                    <circle cx="48" cy="48" r="6" class="accent spin"
+                                        style="transform-origin: 48px 48px;" stroke-dasharray="4 4" />
+                                </g>
+                            </svg>
+                        </div>
                     </div>
                     <div class="project-info">
                         <span class="project-tag">Aerial</span>
@@ -184,9 +261,26 @@
                         <p>Custom-built quadcopter with live video feed.</p>
                     </div>
                 </div>
+
                 <div class="bento-item glass animate-on-scroll">
                     <div class="project-image">
-                        <div class="project-placeholder">🏠</div>
+                        <div class="project-placeholder">
+                            <svg class="project-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"
+                                aria-hidden="true">
+                                <g fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                                    <path class="muted" d="M12 32L32 14L52 32V54H12V32Z" />
+                                    <rect x="26" y="38" width="12" height="16" rx="2" class="accent"
+                                        fill="rgba(255,255,255,0.05)" />
+                                    <circle cx="32" cy="44" r="3" class="accent" />
+                                    <circle cx="12" cy="32" r="2" class="accent pulse" />
+                                    <circle cx="52" cy="32" r="2" class="accent pulse" style="animation-delay: 0.5s" />
+                                    <circle cx="32" cy="14" r="2" class="accent pulse" style="animation-delay: 0.3s" />
+                                    <path class="muted pulse" d="M32 34V16" stroke-dasharray="2 2" />
+                                    <path class="muted pulse" d="M26 42H14" stroke-dasharray="2 2" />
+                                    <path class="muted pulse" d="M38 42H50" stroke-dasharray="2 2" />
+                                </g>
+                            </svg>
+                        </div>
                     </div>
                     <div class="project-info">
                         <span class="project-tag">IoT</span>
@@ -194,9 +288,34 @@
                         <p>Voice-controlled home automation using ESP32.</p>
                     </div>
                 </div>
+
                 <div class="bento-item wide glass animate-on-scroll">
                     <div class="project-image">
-                        <div class="project-placeholder">🤖</div>
+                        <div class="project-placeholder">
+                            <svg class="project-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"
+                                aria-hidden="true">
+                                <g fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                                    <path class="muted" d="M10 42h12v10h-12z" />
+                                    <circle cx="16" cy="54" r="2" class="muted" />
+                                    <path class="muted" d="M16 42v-4" />
+                                    <circle cx="16" cy="36" r="3" class="muted" />
+
+                                    <path class="accent pulse" d="M28 36 C32 36, 32 28, 36 28" stroke-dasharray="2 2" />
+
+                                    <g class="accent" transform="translate(10, -2)">
+                                        <path d="M34 44L46 44L48 36L32 36Z" />
+                                        <path d="M32 36L30 26" />
+                                        <path d="M36 36L36 22" />
+                                        <path d="M40 36L42 22" />
+                                        <path d="M44 36L48 26" />
+                                        <path d="M48 36L52 40" />
+                                        <circle cx="36" cy="22" r="1.5" fill="currentColor" />
+                                        <circle cx="42" cy="22" r="1.5" fill="currentColor" />
+                                        <circle cx="36" cy="36" r="1.5" fill="currentColor" />
+                                    </g>
+                                </g>
+                            </svg>
+                        </div>
                     </div>
                     <div class="project-info">
                         <span class="project-tag">AI</span>
@@ -204,6 +323,7 @@
                         <p>Robot controlled through hand gestures using MediaPipe and machine learning algorithms.</p>
                     </div>
                 </div>
+
             </div>
         </div>
     </section>
@@ -704,8 +824,10 @@
                             <div>
                                 <h4>Follow Us</h4>
                                 <div class="social-links">
-                                    <a href="https://www.instagram.com/liferobo.foet.lu/" class="social-btn">Instagram</a>
-                                    <a href="https://www.linkedin.com/in/roboticsclublu/" class="social-btn">LinkedIn</a>
+                                    <a href="https://www.instagram.com/liferobo.foet.lu/"
+                                        class="social-btn">Instagram</a>
+                                    <a href="https://www.linkedin.com/in/roboticsclublu/"
+                                        class="social-btn">LinkedIn</a>
                                     <a href="https://x.com/liferobo_foet/" class="social-btn">Twitter</a>
                                 </div>
                             </div>

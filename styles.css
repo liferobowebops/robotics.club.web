@@ -212,7 +212,7 @@ button {
     right: 0;
     z-index: 1000;
     padding: 16px 0;
-    background: rgba(10, 10, 15, 0.8);
+    background: rgba(10, 10, 15, 0.7);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--glass-border);
@@ -348,6 +348,15 @@ button {
     100% {
         transform: translate(60px, 60px);
     }
+}
+
+#hero-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none;
 }
 
 .glow-orb {
@@ -791,14 +800,20 @@ button {
     color: var(--accent-primary);
     text-transform: uppercase;
     letter-spacing: 1px;
-    margin-bottom: 8px;
+    margin: 0 auto 8px 0;
 }
 
 .project-info h3 {
     font-family: var(--font-display);
-    font-size: 1.1rem;
+    font-size: clamp(1rem, 2.2vw, 1.2rem);
     font-weight: 600;
     margin-bottom: 6px;
+    line-height: 1.15;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .project-info p {
@@ -811,7 +826,18 @@ button {
 }
 
 .bento-item.large .project-info h3 {
-    font-size: 1.5rem;
+    font-size: clamp(1.1rem, 2.6vw, 1.4rem);
+}
+
+/* ensure project info sits above image if spacing collapses */
+.project-image {
+    position: relative;
+    z-index: 0;
+}
+
+.project-info {
+    position: relative;
+    z-index: 1;
 }
 
 /* ==========================================
@@ -899,9 +925,14 @@ button {
 }
 
 .team-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    display: flex;
+    flex-wrap: wrap;
     gap: 24px;
+    justify-content: center;
+}
+
+.team-grid .team-card {
+    width: 240px;
 }
 
 .center-grid {
@@ -1179,7 +1210,7 @@ button {
     }
 
     .team-grid {
-        grid-template-columns: repeat(2, 1fr);
+        /* For tablet: items will wrap and center */
     }
 
     .events-grid {
@@ -1244,7 +1275,7 @@ button {
     }
 
     .team-grid {
-        grid-template-columns: 1fr;
+        /* For mobile: single column, centered */
     }
 
     .contact-wrapper {
@@ -1290,5 +1321,83 @@ button {
 
     .about-feature {
         padding: 24px;
+    }
+}
+
+/* Projects SVG icons (minimalist) */
+.project-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 140px;
+}
+
+.project-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.project-svg {
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    stroke: var(--text-primary);
+    fill: none;
+    transition: transform 0.32s var(--transition-fast), opacity 0.32s var(--transition-fast);
+}
+
+.project-svg .accent {
+    stroke: var(--accent-primary);
+}
+
+.project-svg .muted {
+    stroke: rgba(255, 255, 255, 0.12);
+}
+
+.project-image {
+    display: flex;
+    height: 60%;
+    align-items: center;
+    justify-content: center;
+}
+
+.bento-item:hover .project-svg {
+    transform: translateY(-6px);
+    filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.45));
+}
+
+.spin {
+    transform-origin: 50% 50%;
+    animation: spin 1.6s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.pulse {
+    transform-origin: 50% 50%;
+    animation: pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.45;
+        transform: scale(1.08);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1);
     }
 }

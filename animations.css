@@ -191,3 +191,208 @@
 .tilt-content {
     transform: translateZ(20px);
 }
+
+
+/* ==========================================
+   ROBOT ARM ANIMATIONS
+   ========================================== */
+
+/* 1. Base: Swings the main post Left <-> Right */
+.arm-lower {
+    transform-origin: 32px 50px;
+    animation: swing-base 3s ease-in-out infinite;
+}
+
+/* 2. Elbow: Rotates POSITIVE to swing the arm DOWNWARDS */
+.arm-upper {
+    transform-origin: 32px 34px;
+    animation: flex-elbow 3s ease-in-out infinite;
+}
+
+/* 3. Wrist: Adjusts claw angle to stay relevant to the ground */
+.wrist-assembly {
+    transform-origin: 46px 20px;
+    animation: wrist-orient 3s ease-in-out infinite;
+}
+
+/* 4. Pinchers */
+.finger-top {
+    transform-origin: 52px 20px;
+    animation: pinch-top 3s ease-in-out infinite;
+}
+
+.finger-bottom {
+    transform-origin: 52px 20px;
+    animation: pinch-bottom 3s ease-in-out infinite;
+}
+
+/* --- Keyframes --- */
+
+@keyframes swing-base {
+    0% {
+        transform: rotate(-15deg);
+    }
+
+    10% {
+        transform: rotate(-15deg);
+    }
+
+    /* Lean Left */
+    20% {
+        transform: rotate(-15deg);
+    }
+
+    30% {
+        transform: rotate(-15deg);
+    }
+
+    40% {
+        transform: rotate(-15deg);
+    }
+
+    50% {
+        transform: rotate(-15deg);
+    }
+
+    60% {
+        transform: rotate(-15deg);
+    }
+
+    70% {
+        transform: rotate(-15deg);
+    }
+
+    80% {
+        transform: rotate(15deg);
+    }
+
+    90% {
+        transform: rotate(15deg);
+    }
+
+    100% {
+        transform: rotate(-15deg);
+    }
+}
+
+@keyframes flex-elbow {
+
+    /* Start (0deg) = Arm points Up-Right. 
+                           We rotate ~160deg to make it point Down-Left.
+                        */
+    0% {
+        transform: rotate(160deg);
+    }
+
+    /* Reach Down-Left */
+    20% {
+        transform: rotate(160deg);
+    }
+
+    50% {
+        transform: rotate(80deg);
+    }
+
+    /* Reach Down-Right */
+    70% {
+        transform: rotate(80deg);
+    }
+
+    100% {
+        transform: rotate(160deg);
+    }
+}
+
+@keyframes wrist-orient {
+
+    /* Rotate wrist to keep claw level with ground */
+    0% {
+        transform: rotate(-40deg);
+    }
+
+    20% {
+        transform: rotate(-40deg);
+    }
+
+    50% {
+        transform: rotate(-10deg);
+    }
+
+    70% {
+        transform: rotate(-10deg);
+    }
+
+    100% {
+        transform: rotate(-40deg);
+    }
+}
+
+@keyframes pinch-top {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    /* Open */
+    15% {
+        transform: rotate(20deg);
+    }
+
+    /* Grab */
+    60% {
+        transform: rotate(20deg);
+    }
+
+    /* Hold */
+    70% {
+        transform: rotate(0deg);
+    }
+
+    /* Release */
+    100% {
+        transform: rotate(0deg);
+    }
+}
+
+@keyframes pinch-bottom {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    15% {
+        transform: rotate(-20deg);
+    }
+
+    60% {
+        transform: rotate(-20deg);
+    }
+
+    70% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(0deg);
+    }
+}
+
+.spin-base {
+    transform-origin: 32px 50px;
+    animation: spin 10s linear infinite;
+}
+
+@keyframes spin {
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.wheel-spin { transform-origin: center; transform-box: fill-box; animation: spin-wheel 0.8s linear infinite; }
+    .bot-body { animation: bounce-bot 0.6s ease-in-out infinite alternate; }
+    .sensor-pulse { opacity: 0; animation: pulse-wave 1.5s infinite; }
+    .delay-1 { animation-delay: 0.3s; }
+    .road-move { stroke-dasharray: 4 4; animation: move-road 0.5s linear infinite; }
+
+    @keyframes spin-wheel { 100% { transform: rotate(360deg); } }
+    @keyframes bounce-bot { 0% { transform: translateY(0); } 100% { transform: translateY(-2px); } }
+    @keyframes pulse-wave { 0% { opacity: 1; transform: scale(0.8) translateY(2px); transform-origin: 32px 14px; } 100% { opacity: 0; transform: scale(1.5) translateY(-2px); transform-origin: 32px 14px; } }
+    @keyframes move-road { to { stroke-dashoffset: -8; } }
