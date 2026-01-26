@@ -1,21 +1,51 @@
 // ==========================================
-// ROBO ROBOTICS CLUB - Interactive Scripts
+// ROBO ROBOTICS CLUB - OPTIMIZED CORE
 // ==========================================
 
+// Global State for Input Coalescing
+// We update these on event triggers, but read them in the render loop
+// to avoid layout thrashing.
+const MouseState = {
+    x: 0,
+    y: 0,
+    normalizedX: 0, // -1 to 1
+    normalizedY: 0  // -1 to 1
+};
+
 document.addEventListener('DOMContentLoaded', () => {
+    // 1. Initialize Input Listeners first
+    initGlobalInputListeners();
+
+    // 2. Initialize UI Components
     initScrollAnimations();
     initMobileMenu();
     initSmoothScroll();
     initCounterAnimation();
     initFormHandler();
-    initParallax();
     initTypingEffect();
-    initTiltEffect();
+    
+    // 3. Initialize Visual Effects (synced to common RAF)
+    initVisualEffects(); // Parallax & Tilt merged here
+    
+    // 4. Initialize Heavy 3D Context
     initThreeJSBackground();
 });
 
 // ==========================================
-// TYPING EFFECT
+// CENTRALIZED INPUT HANDLING
+// ==========================================
+function initGlobalInputListeners() {
+    // Passive listener for better scroll performance
+    window.addEventListener('mousemove', (e) => {
+        MouseState.x = e.clientX;
+        MouseState.y = e.clientY;
+        MouseState.normalizedX = (e.clientX / window.innerWidth) * 2 - 1;
+        MouseState.normalizedY = -(e.clientY / window.innerHeight) * 2 + 1;
+    }, { passive: true });
+}
+
+// ==========================================
+// 1. TYPING EFFECT (Cleaned)
 // ==========================================
 function initTypingEffect() {
     const text = "University of Lucknow's premier robotics club. Where innovation meets engineering excellence.";
@@ -26,7 +56,8 @@ function initTypingEffect() {
     element.classList.add('typing-cursor');
 
     let index = 0;
-
+    // Use requestAnimationFrame for timing if high precision needed, 
+    // but setInterval is acceptable here for text.
     setTimeout(() => {
         const typeInterval = setInterval(() => {
             if (index < text.length) {
@@ -34,685 +65,440 @@ function initTypingEffect() {
                 index++;
             } else {
                 clearInterval(typeInterval);
-                // Blink cursor for 3 more seconds then remove
-                setTimeout(() => {
-                    element.classList.remove('typing-cursor');
-                }, 3000);
+                setTimeout(() => element.classList.remove('typing-cursor'), 3000);
             }
-        }, 30); // Typing speed
-    }, 1500); // Initial delay
+        }, 30);
+    }, 1500);
 }
 
 // ==========================================
-// 3D TILT EFFECT
+// 2. VISUAL EFFECTS (Parallax, Tilt, Cursor)
 // ==========================================
-function initTiltEffect() {
-    const cards = document.querySelectorAll('.glass');
+function initVisualEffects() {
+    const orbs = document.querySelectorAll('.glow-orb');
+    const tiltCards = document.querySelectorAll('.glass');
+    const cursor = createCursorElement();
 
-    cards.forEach(card => {
-        card.classList.add('tilt-card');
+    // We use a single loop for DOM effects to avoid multiple RAF calls
+    function loop() {
+        // A. Parallax (Orbs)
+        orbs.forEach((orb, index) => {
+            const speed = (index + 1) * 15;
+            const x = MouseState.normalizedX * speed;
+            const y = MouseState.normalizedY * -speed; // Invert Y for natural feel
+            orb.style.transform = `translate3d(${x}px, ${y}px, 0)`; // translate3d forces GPU acceleration
+        });
 
-        // Wrap content if needed, but for now apply to card directly
-        card.addEventListener('mousemove', (e) => {
+        // B. Tilt Effect
+        tiltCards.forEach(card => {
             const rect = card.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+            // Check if mouse is near/over the card to save calculation
+            if (
+                MouseState.x > rect.left - 50 && MouseState.x < rect.right + 50 &&
+                MouseState.y > rect.top - 50 && MouseState.y < rect.bottom + 50
+            ) {
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                const x = (MouseState.x - centerX) / (rect.width / 2);
+                const y = (MouseState.y - centerY) / (rect.height / 2);
+                
+                // Clamp values
+                const rotateX = Math.max(-10, Math.min(10, -y * 10));
+                const rotateY = Math.max(-10, Math.min(10, x * 10));
 
-            const centerX = rect.width / 2;
-            const centerY = rect.height / 2;
-
-            const rotateX = ((y - centerY) / centerY) * -10; // Max 10deg rotation
-            const rotateY = ((x - centerX) / centerX) * 10;
-
-            card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+                card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+            } else {
+                // Reset if mouse moves away
+                if (card.style.transform !== 'none') {
+                    card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale3d(1, 1, 1)';
+                }
+            }
         });
 
-        card.addEventListener('mouseleave', () => {
-            card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale3d(1, 1, 1)';
-        });
-    });
+        // C. Cursor Glow
+        if (cursor) {
+            // Simple lerp for smooth cursor trailing could be added here
+            cursor.style.transform = `translate3d(${MouseState.x}px, ${MouseState.y}px, 0) translate(-50%, -50%)`;
+        }
+
+        requestAnimationFrame(loop);
+    }
+    loop();
+}
+
+function createCursorElement() {
+    const cursor = document.createElement('div');
+    cursor.className = 'cursor-glow';
+    // Styles moved to CSS class ideally, but inline for now
+    cursor.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 300px; height: 300px;
+        background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
+        border-radius: 50%; pointer-events: none; z-index: 9999;
+        will-change: transform; /* Hint to browser */
+    `;
+    document.body.appendChild(cursor);
+    return cursor;
 }
 
 // ==========================================
-// SCROLL-TRIGGERED ANIMATIONS
+// 3. SCROLL & NAV UTILITIES
 // ==========================================
 function initScrollAnimations() {
-    const observerOptions = {
-        root: null,
-        rootMargin: '0px',
-        threshold: 0.1
-    };
-
     const observer = new IntersectionObserver((entries) => {
-        entries.forEach((entry, index) => {
+        entries.forEach((entry) => {
             if (entry.isIntersecting) {
-                // Add staggered delay for multiple elements
-                setTimeout(() => {
-                    entry.target.classList.add('visible');
-                }, index * 100);
+                entry.target.classList.add('visible');
+                // Optional: Stop observing once visible to save memory
+                // observer.unobserve(entry.target); 
             }
         });
-    }, observerOptions);
+    }, { threshold: 0.1 });
 
-    // Observe all elements with scroll animation class
-    document.querySelectorAll('.animate-on-scroll').forEach((el) => {
+    document.querySelectorAll('.animate-on-scroll').forEach((el, i) => {
+        el.style.transitionDelay = `${i * 50}ms`; // CSS-based stagger is more performant than setTimeout
         observer.observe(el);
     });
 }
 
-// ==========================================
-// MOBILE MENU TOGGLE
-// ==========================================
 function initMobileMenu() {
     const toggle = document.querySelector('.mobile-toggle');
-    const navLinks = document.querySelector('.nav-links');
+    if (!toggle) return;
 
-    if (toggle) {
-        toggle.addEventListener('click', () => {
-            toggle.classList.toggle('active');
+    // Create menu once
+    const mobileMenu = document.createElement('div');
+    mobileMenu.className = 'mobile-menu';
+    mobileMenu.innerHTML = `
+        <a href="#about">About</a><a href="#projects">Projects</a>
+        <a href="#events">Events</a><a href="#team">Team</a>
+        <a href="#contact">Contact</a><a href="#contact" class="btn btn-primary">Join Us</a>
+    `;
+    // Styles should ideally be in CSS file
+    Object.assign(mobileMenu.style, {
+        display: 'none', position: 'absolute', top: '100%', left: '0', right: '0',
+        background: 'rgba(10, 10, 15, 0.98)', backdropFilter: 'blur(20px)',
+        padding: '24px', flexDirection: 'column', gap: '16px', borderBottom: '1px solid rgba(255,255,255,0.08)'
+    });
+    document.querySelector('.navbar').appendChild(mobileMenu);
 
-            // Create mobile menu if it doesn't exist
-            let mobileMenu = document.querySelector('.mobile-menu');
+    toggle.addEventListener('click', () => {
+        const isActive = toggle.classList.toggle('active');
+        mobileMenu.style.display = isActive ? 'flex' : 'none';
+    });
 
-            if (!mobileMenu) {
-                mobileMenu = document.createElement('div');
-                mobileMenu.className = 'mobile-menu';
-                mobileMenu.innerHTML = `
-                    <a href="#about">About</a>
-                    <a href="#projects">Projects</a>
-                    <a href="#events">Events</a>
-                    <a href="#team">Team</a>
-                    <a href="#contact">Contact</a>
-                    <a href="#contact" class="btn btn-primary">Join Us</a>
-                `;
-                document.querySelector('.navbar').appendChild(mobileMenu);
-
-                // Add styles dynamically
-                const style = document.createElement('style');
-                style.textContent = `
-                    .mobile-menu {
-                        display: none;
-                        position: absolute;
-                        top: 100%;
-                        left: 0;
-                        right: 0;
-                        background: rgba(10, 10, 15, 0.98);
-                        backdrop-filter: blur(20px);
-                        padding: 24px;
-                        flex-direction: column;
-                        gap: 16px;
-                        border-bottom: 1px solid rgba(255,255,255,0.08);
-                    }
-                    .mobile-menu.active {
-                        display: flex;
-                    }
-                    .mobile-menu a {
-                        padding: 12px 0;
-                        font-size: 1rem;
-                        color: #a1a1aa;
-                        border-bottom: 1px solid rgba(255,255,255,0.05);
-                    }
-                    .mobile-menu a:hover {
-                        color: #fff;
-                    }
-                    .mobile-toggle.active span:nth-child(1) {
-                        transform: rotate(45deg) translate(5px, 5px);
-                    }
-                    .mobile-toggle.active span:nth-child(2) {
-                        opacity: 0;
-                    }
-                    .mobile-toggle.active span:nth-child(3) {
-                        transform: rotate(-45deg) translate(5px, -5px);
-                    }
-                `;
-                document.head.appendChild(style);
-            }
-
-            mobileMenu.classList.toggle('active');
-        });
-
-        // Close menu when clicking a link
-        document.addEventListener('click', (e) => {
-            if (e.target.closest('.mobile-menu a')) {
-                document.querySelector('.mobile-menu')?.classList.remove('active');
-                toggle.classList.remove('active');
-            }
-        });
-    }
-}
-
-// ==========================================
-// SMOOTH SCROLL FOR NAVIGATION
-// ==========================================
-function initSmoothScroll() {
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
-            e.preventDefault();
-            const target = document.querySelector(this.getAttribute('href'));
-
-            if (target) {
-                const headerOffset = 80;
-                const elementPosition = target.getBoundingClientRect().top;
-                const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-
-                window.scrollTo({
-                    top: offsetPosition,
-                    behavior: 'smooth'
-                });
-            }
-        });
+    mobileMenu.addEventListener('click', (e) => {
+        if (e.target.tagName === 'A') {
+            toggle.classList.remove('active');
+            mobileMenu.style.display = 'none';
+        }
     });
 }
 
-// ==========================================
-// COUNTER ANIMATION FOR STATS
-// ==========================================
+function initSmoothScroll() {
+    // Delegation: One listener for the whole document
+    document.addEventListener('click', (e) => {
+        if (e.target.tagName === 'A' && e.target.getAttribute('href')?.startsWith('#')) {
+            e.preventDefault();
+            const target = document.querySelector(e.target.getAttribute('href'));
+            if (target) {
+                const offsetPosition = target.getBoundingClientRect().top + window.pageYOffset - 80;
+                window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+            }
+        }
+    });
+    
+    // Navbar Background Scroll
+    let ticking = false;
+    window.addEventListener('scroll', () => {
+        if (!ticking) {
+            window.requestAnimationFrame(() => {
+                const navbar = document.querySelector('.navbar');
+                if (window.scrollY > 100) {
+                    navbar.style.background = 'rgba(10, 10, 15, 0.9)';
+                    navbar.style.boxShadow = '0 4px 30px rgba(0, 0, 0, 0.3)';
+                } else {
+                    navbar.style.background = 'rgba(10, 10, 15, 0.7)';
+                    navbar.style.boxShadow = 'none';
+                }
+                ticking = false;
+            });
+            ticking = true;
+        }
+    }, { passive: true });
+}
+
 function initCounterAnimation() {
-    const counters = document.querySelectorAll('.stat-number');
-
-    const observerOptions = {
-        threshold: 0.5
-    };
-
-    const counterObserver = new IntersectionObserver((entries) => {
+    const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
-                const counter = entry.target;
-                const target = parseInt(counter.getAttribute('data-count'));
-                animateCounter(counter, target);
-                counterObserver.unobserve(counter);
+                const el = entry.target;
+                const target = parseInt(el.getAttribute('data-count'));
+                // Use requestAnimationFrame for smoother counter
+                let startTimestamp = null;
+                const duration = 2000;
+                
+                const step = (timestamp) => {
+                    if (!startTimestamp) startTimestamp = timestamp;
+                    const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                    el.textContent = Math.floor(progress * target);
+                    if (progress < 1) window.requestAnimationFrame(step);
+                    else el.textContent = target;
+                };
+                window.requestAnimationFrame(step);
+                observer.unobserve(el);
             }
         });
-    }, observerOptions);
-
-    counters.forEach(counter => counterObserver.observe(counter));
+    }, { threshold: 0.5 });
+    
+    document.querySelectorAll('.stat-number').forEach(c => observer.observe(c));
 }
 
-function animateCounter(element, target) {
-    let current = 0;
-    const increment = target / 50;
-    const duration = 2000;
-    const stepTime = duration / 50;
-
-    const timer = setInterval(() => {
-        current += increment;
-        if (current >= target) {
-            element.textContent = target;
-            clearInterval(timer);
-        } else {
-            element.textContent = Math.floor(current);
-        }
-    }, stepTime);
-}
-
-// ==========================================
-// FORM HANDLER
-// ==========================================
 function initFormHandler() {
     const form = document.getElementById('contactForm');
+    if (!form) return;
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const btn = form.querySelector('button[type="submit"]');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<span>Sending...</span>';
+        btn.disabled = true;
 
-    if (form) {
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-
-            // Get form data
-            const formData = new FormData(form);
-            const data = Object.fromEntries(formData);
-
-            // Simulate form submission
-            const btn = form.querySelector('button[type="submit"]');
-            const originalText = btn.innerHTML;
-
-            btn.innerHTML = '<span>Sending...</span>';
-            btn.disabled = true;
-
+        setTimeout(() => {
+            btn.innerHTML = '<span>Message Sent! ✓</span>';
+            btn.style.background = '#22c55e'; // simplified color
+            form.reset();
             setTimeout(() => {
-                btn.innerHTML = '<span>Message Sent! ✓</span>';
-                btn.style.background = 'linear-gradient(135deg, #22c55e, #16a34a)';
-
-                // Reset form
-                form.reset();
-
-                setTimeout(() => {
-                    btn.innerHTML = originalText;
-                    btn.style.background = '';
-                    btn.disabled = false;
-                }, 3000);
-            }, 1500);
-        });
-    }
-}
-
-// ==========================================
-// PARALLAX EFFECT FOR HERO ORBS
-// ==========================================
-function initParallax() {
-    const orbs = document.querySelectorAll('.glow-orb');
-
-    document.addEventListener('mousemove', (e) => {
-        const x = (e.clientX / window.innerWidth - 0.5) * 2;
-        const y = (e.clientY / window.innerHeight - 0.5) * 2;
-
-        orbs.forEach((orb, index) => {
-            const speed = (index + 1) * 15;
-            const xOffset = x * speed;
-            const yOffset = y * speed;
-
-            orb.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
-        });
+                btn.innerHTML = originalText;
+                btn.style.background = '';
+                btn.disabled = false;
+            }, 3000);
+        }, 1500);
     });
 }
 
 // ==========================================
-// NAVBAR SCROLL EFFECT
-// ==========================================
-window.addEventListener('scroll', () => {
-    const navbar = document.querySelector('.navbar');
-
-    if (window.scrollY > 100) {
-        navbar.style.background = 'rgba(10, 10, 15, 0.9)';
-        navbar.style.boxShadow = '0 4px 30px rgba(0, 0, 0, 0.3)';
-    } else {
-        navbar.style.background = 'rgba(10, 10, 15, 0.7)';
-        navbar.style.boxShadow = 'none';
-    }
-});
-
-// ==========================================
-// CURSOR GLOW EFFECT (Optional Enhancement)
-// ==========================================
-function initCursorGlow() {
-    const cursor = document.createElement('div');
-    cursor.className = 'cursor-glow';
-    cursor.style.cssText = `
-        position: fixed;
-        width: 300px;
-        height: 300px;
-        background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
-        border-radius: 50%;
-        pointer-events: none;
-        z-index: 9999;
-        transform: translate(-50%, -50%);
-        transition: opacity 0.3s ease;
-    `;
-    document.body.appendChild(cursor);
-
-    document.addEventListener('mousemove', (e) => {
-        cursor.style.left = e.clientX + 'px';
-        cursor.style.top = e.clientY + 'px';
-    });
-
-    document.addEventListener('mouseenter', () => cursor.style.opacity = '1');
-    document.addEventListener('mouseleave', () => cursor.style.opacity = '0');
-}
-
-// Uncomment to enable cursor glow effect
-initCursorGlow();
-
-// ==========================================
-// THREE.JS HERO BACKGROUND (OPTIMIZED)
+// 4. THREE.JS BACKGROUND (ALIGNED)
 // ==========================================
 function initThreeJSBackground() {
     const canvas = document.getElementById('hero-canvas');
     if (!canvas) return;
 
-    // --- SCENE SETUP ---
+    // --- SETUP ---
     const scene = new THREE.Scene();
-    // Adjusted camera for a better isometric-style view
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 12, 25);
-    camera.lookAt(0, 0, 0);
+    // Moved camera slightly higher for a clearer "board game" view of the grid
+    camera.position.set(0, 15, 25);
+    camera.lookAt(0, -5, 0);
 
     const renderer = new THREE.WebGLRenderer({ 
-        canvas: canvas, 
-        alpha: true, 
-        antialias: true,
-        powerPreference: "high-performance" 
+        canvas, alpha: true, antialias: true, powerPreference: "high-performance" 
     });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Cap pixel ratio for performance
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-    // --- SHARED RESOURCES (PERFORMANCE OPTIMIZATION) ---
-    // Create geometries and materials ONCE here, reuse them later.
+    // --- CONSTANTS ---
+    const CELL_SIZE = 5; 
+    const GRID_Y = -10;
+    // Calculate exact Car Y so wheels touch the line:
+    // Grid Height + Wheel Radius (0.4) + Wheel Offset correction (0.1)
+    const CAR_Y = GRID_Y + 0.5; 
+
+    // --- REUSABLE MEMORY ---
+    const _vec3_1 = new THREE.Vector3();
+    const _dir = new THREE.Vector3();
     
-    // Materials
-    const gridColor = 0x6366f1;
-    const orangeColor = 0xff6b35;
-    const cyanColor = 0x4ecdc4;
-    const darkColor = 0x333333;
+    // Helper: Snaps strictly to the 5-unit grid intersections
+    const getGridTarget = (targetVec) => {
+        targetVec.set(
+            (Math.floor(Math.random() * 8) - 4) * CELL_SIZE, // -20, -15... 15, 20
+            CAR_Y, 
+            (Math.floor(Math.random() * 8) - 4) * CELL_SIZE
+        );
+    };
 
-    const mainMaterial = new THREE.LineBasicMaterial({ color: orangeColor, transparent: true, opacity: 0.8 });
-    const cyanMaterial = new THREE.LineBasicMaterial({ color: cyanColor, transparent: true, opacity: 0.8 });
-    const wheelMaterial = new THREE.LineBasicMaterial({ color: darkColor, transparent: true, opacity: 0.6 });
+    // --- MATERIALS & GEOMETRY (Optimized) ---
+    const materials = {
+        main: new THREE.LineBasicMaterial({ color: 0xff6b35, transparent: true, opacity: 0.8 }),
+        cyan: new THREE.LineBasicMaterial({ color: 0x4ecdc4, transparent: true, opacity: 0.8 }),
+        green: new THREE.LineBasicMaterial({ color: 0x4ade80, transparent: true, opacity: 0.8 }),
+        blue: new THREE.LineBasicMaterial({ color: 0x0ea5e9, transparent: true, opacity: 0.8 }),
+        dark: new THREE.LineBasicMaterial({ color: 0x333333, transparent: true, opacity: 0.6 }),
+        detail: new THREE.LineBasicMaterial({ color: 0x222222, transparent: true, opacity: 0.8 })
+    };
 
-    // Geometries
-    const carBodyGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(2, 0.8, 1));
-    const wheelGeo = new THREE.EdgesGeometry(new THREE.CylinderGeometry(0.2, 0.2, 0.1, 8));
-    
-    // Arm Geometries
-    const baseGeo = new THREE.EdgesGeometry(new THREE.CylinderGeometry(1, 1.2, 0.5, 16));
-    const segmentGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(0.3, 2, 0.3));
-    const gripperGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(0.8, 0.4, 0.2));
+    const geometries = {
+        front: new THREE.EdgesGeometry(createTaperedBox(1.6, 1.0, 1.4, 0.4)),
+        rear: new THREE.EdgesGeometry(new THREE.BoxGeometry(1.8, 1.0, 1.6)),
+        cage: new THREE.EdgesGeometry(new THREE.BoxGeometry(1.6, 0.8, 1.4)),
+        bumper: new THREE.EdgesGeometry(new THREE.BoxGeometry(1.4, 0.4, 0.2)),
+        // Wheel radius is 0.4
+        wheel: new THREE.EdgesGeometry(new THREE.CylinderGeometry(0.4, 0.4, 0.2, 12)), 
+        base: new THREE.EdgesGeometry(new THREE.CylinderGeometry(1, 1.2, 0.5, 16)),
+        segment: new THREE.EdgesGeometry(new THREE.BoxGeometry(0.3, 2, 0.3)),
+        gripper: new THREE.EdgesGeometry(new THREE.BoxGeometry(0.8, 0.4, 0.2))
+    };
+
+    function createTaperedBox(w, h, d, taperScale) {
+        const geom = new THREE.BoxGeometry(w, h, d);
+        const pos = geom.attributes.position;
+        for (let i = 0; i < pos.count; i++) {
+            if (pos.getZ(i) > d/4) pos.setX(i, pos.getX(i) * taperScale);
+        }
+        return geom;
+    }
 
     // --- ENVIRONMENT ---
-    const gridHelper = new THREE.GridHelper(100, 20, gridColor, gridColor);
-    gridHelper.position.y = -10;
+    // GridHelper(size, divisions). 100 / 20 = 5 units per square. Matches CELL_SIZE.
+    const gridHelper = new THREE.GridHelper(100, 20, 0x6366f1, 0x6366f1);
+    gridHelper.position.y = GRID_Y;
     gridHelper.material.opacity = 0.15;
     gridHelper.material.transparent = true;
     scene.add(gridHelper);
 
-    // Particles
-    const particleCount = 50; // Reduced density
-    const particleGeometry = new THREE.BufferGeometry();
-    const pPositions = new Float32Array(particleCount * 3);
-    const pColors = new Float32Array(particleCount * 3);
-    const pSpeeds = new Float32Array(particleCount); // Store individual speeds
-
+    // Particles (Visuals)
+    const particleCount = 30;
+    const pGeo = new THREE.BufferGeometry();
+    const pPos = new Float32Array(particleCount * 3);
+    const pCol = new Float32Array(particleCount * 3);
     for (let i = 0; i < particleCount; i++) {
-        pPositions[i * 3] = (Math.random() - 0.5) * 60;
-        pPositions[i * 3 + 1] = (Math.random() - 0.5) * 30;
-        pPositions[i * 3 + 2] = (Math.random() - 0.5) * 60;
-
-        pColors[i * 3] = 0.6 + Math.random() * 0.4;
-        pColors[i * 3 + 1] = 0.4 + Math.random() * 0.4;
-        pColors[i * 3 + 2] = 1.0;
-        
-        pSpeeds[i] = 0.02 + Math.random() * 0.05;
+        pPos[i*3] = (Math.random()-0.5)*60;
+        pPos[i*3+1] = (Math.random()-0.5)*30;
+        pPos[i*3+2] = (Math.random()-0.5)*60;
+        pCol[i*3] = 0.6 + Math.random()*0.4;
+        pCol[i*3+1] = 0.4 + Math.random()*0.4;
+        pCol[i*3+2] = 1.0;
     }
-
-    particleGeometry.setAttribute('position', new THREE.BufferAttribute(pPositions, 3));
-    particleGeometry.setAttribute('color', new THREE.BufferAttribute(pColors, 3));
-    const particles = new THREE.Points(particleGeometry, new THREE.PointsMaterial({
+    pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+    pGeo.setAttribute('color', new THREE.BufferAttribute(pCol, 3));
+    const particles = new THREE.Points(pGeo, new THREE.PointsMaterial({
         size: 0.15, vertexColors: true, transparent: true, opacity: 0.6
     }));
     scene.add(particles);
 
-    // --- ROBOTIC ARM ---
+    // Arm (Background element)
     const armGroup = new THREE.Group();
-    const base = new THREE.LineSegments(baseGeo, mainMaterial);
-    armGroup.add(base);
-
-    // Create segments with pivots for better animation
-    const lowerArm = new THREE.Group();
-    const lowerArmMesh = new THREE.LineSegments(segmentGeo, cyanMaterial);
-    lowerArmMesh.position.y = 1; // Half length
-    lowerArm.add(lowerArmMesh);
-    lowerArm.position.y = 0.25; // On top of base
+    armGroup.position.set(30, GRID_Y, 20); // Base sits on grid
+    armGroup.scale.set(1.5, 1.5, 1.5);
+    armGroup.add(new THREE.LineSegments(geometries.base, materials.main));
+    
+    // Simple arm structure
+    const lowerArm = new THREE.Group(); lowerArm.position.y = 0.25;
+    const lMesh = new THREE.LineSegments(geometries.segment, materials.cyan); lMesh.position.y = 1; lowerArm.add(lMesh);
     armGroup.add(lowerArm);
-
-    const upperArm = new THREE.Group();
-    const upperArmMesh = new THREE.LineSegments(segmentGeo, cyanMaterial);
-    upperArmMesh.position.y = 1;
-    upperArm.add(upperArmMesh);
-    upperArm.position.y = 2; // Length of lower arm
-    lowerArmMesh.add(upperArm);
-
-    const gripper = new THREE.LineSegments(gripperGeo, mainMaterial);
-    gripper.position.y = 2; // Length of upper arm
-    upperArmMesh.add(gripper);
-
-    armGroup.position.set(20, -8, 20); // Corner placement
+    
+    const upperArm = new THREE.Group(); upperArm.position.y = 2;
+    const uMesh = new THREE.LineSegments(geometries.segment, materials.cyan); uMesh.position.y = 1; upperArm.add(uMesh);
+    lowerArm.add(upperArm);
+    
+    const gripper = new THREE.LineSegments(geometries.gripper, materials.main); gripper.position.y = 2.2;
+    upperArm.add(gripper);
     scene.add(armGroup);
 
-    // --- ROBOT CARS ---
+   // --- CARS LOGIC (PATTERN MODE) ---
     const robotCars = [];
-    const wheelPositions = [
-        [-0.8, -0.3, 0.4], [0.8, -0.3, 0.4], [-0.8, -0.3, -0.4], [0.8, -0.3, -0.4]
+    const carColors = [materials.green, materials.blue, materials.main, materials.cyan];
+
+    // Define 4 safe "Patrol Zones" (Square loops)
+    // Each array contains the 4 corners of a square path
+    const patrolPaths = [
+        // Car 0: Top Right Quadrant (Clockwise)
+        [new THREE.Vector3(5, CAR_Y, 5), new THREE.Vector3(20, CAR_Y, 5), new THREE.Vector3(20, CAR_Y, 20), new THREE.Vector3(5, CAR_Y, 20)],
+        // Car 1: Top Left Quadrant (Counter-Clockwise)
+        [new THREE.Vector3(-5, CAR_Y, 5), new THREE.Vector3(-5, CAR_Y, 20), new THREE.Vector3(-20, CAR_Y, 20), new THREE.Vector3(-20, CAR_Y, 5)],
+        // Car 2: Bottom Left Quadrant (Clockwise)
+        [new THREE.Vector3(-5, CAR_Y, -5), new THREE.Vector3(-20, CAR_Y, -5), new THREE.Vector3(-20, CAR_Y, -20), new THREE.Vector3(-5, CAR_Y, -20)],
+        // Car 3: Bottom Right Quadrant (Counter-Clockwise)
+        [new THREE.Vector3(5, CAR_Y, -5), new THREE.Vector3(5, CAR_Y, -20), new THREE.Vector3(20, CAR_Y, -20), new THREE.Vector3(20, CAR_Y, -5)]
     ];
 
-    // Car materials - greenish and sky bluish for first two cars, orange for others
-    const greenMaterial = new THREE.LineBasicMaterial({ color: 0x4ade80, transparent: true, opacity: 0.8 });
-    const blueMaterial = new THREE.LineBasicMaterial({ color: 0x0ea5e9, transparent: true, opacity: 0.8 });
-
-    // Helper to generate a random target on the grid
-    const getRandomTarget = () => {
-        return new THREE.Vector3(
-            (Math.floor(Math.random() * 8) - 4) * 5, // Snap to 5-unit grid
-            -9.5,
-            (Math.floor(Math.random() * 8) - 4) * 5
-        );
-    };
-
-    for (let i = 0; i < 4; i++) {
+    // Initialize Cars
+    for(let i=0; i<4; i++) {
         const carGroup = new THREE.Group();
-        // Use new colors for first two cars, original orange for the other two
-        const carMaterial = i < 2 ? (i === 0 ? greenMaterial : blueMaterial) : mainMaterial;
-        const carBody = new THREE.LineSegments(carBodyGeo, carMaterial);
-        carGroup.add(carBody);
+        const mat = carColors[i];
 
-        const carWheels = [];
-        wheelPositions.forEach(pos => {
-            const wheel = new THREE.LineSegments(wheelGeo, wheelMaterial);
-            wheel.position.set(pos[0], pos[1], pos[2]);
-            wheel.rotation.z = Math.PI / 2;
-            carGroup.add(wheel);
-            carWheels.push(wheel);
+        // --- BUILD CAR (Geometry reuse) ---
+        const front = new THREE.LineSegments(geometries.front, mat); front.position.set(0, 0.2, 1.0); carGroup.add(front);
+        const rear = new THREE.LineSegments(geometries.rear, mat); rear.position.set(0, 0.2, -0.8); carGroup.add(rear);
+        const cage = new THREE.LineSegments(geometries.cage, materials.detail); cage.position.set(0, 0.6, -0.8); carGroup.add(cage);
+        const bumper = new THREE.LineSegments(geometries.bumper, materials.detail); bumper.position.set(0, -0.1, 1.7); carGroup.add(bumper);
+
+        const wheels = [];
+        [[0.7,-0.1,0.8], [-0.7,-0.1,0.8], [0.9,-0.1,-1.0], [-0.9,-0.1,-1.0]].forEach(p => {
+            const w = new THREE.LineSegments(geometries.wheel, materials.dark);
+            w.position.set(...p); w.rotation.z = Math.PI/2;
+            carGroup.add(w); wheels.push(w);
         });
 
-        // Initialize positions widely spread
-        const startPos = getRandomTarget();
-        carGroup.position.copy(startPos);
+        // --- PATTERN SETUP ---
+        // Start at the first point of their specific path
+        const startPoint = patrolPaths[i][0];
+        carGroup.position.copy(startPoint);
 
-        // Physics/Movement Data
         carGroup.userData = {
-            velocity: new THREE.Vector3(),
-            speed: 0.02 + Math.random() * 0.03,
-            target: getRandomTarget(),
-            wheels: carWheels,
-            state: 'moving' // moving, turning, waiting
+            path: patrolPaths[i], // The array of 4 points
+            targetIndex: 1,       // Go to the second point first
+            wheels: wheels,
+            speed: 0.12,          // Fast, consistent speed
+            axis: 'x'             // Movement axis
         };
+        
+        // Orient initially to face target
+        carGroup.lookAt(patrolPaths[i][1]);
 
         scene.add(carGroup);
         robotCars.push(carGroup);
     }
 
-    // --- ANIMATION LOOP ---
+    // --- ANIMATION ---
     const clock = new THREE.Clock();
 
     function animate() {
         requestAnimationFrame(animate);
-
         const time = Date.now() * 0.001;
-        const delta = clock.getDelta(); // Use delta for smooth movement regardless of framerate
 
-        // 1. Animate Particles
-        const positions = particles.geometry.attributes.position.array;
-        for (let i = 0; i < particleCount; i++) {
-            positions[i * 3 + 1] += Math.sin(time + positions[i * 3]) * 0.02; // Organic floating
-        }
-        particles.geometry.attributes.position.needsUpdate = true;
+        // 1. Arm Sway
+        lowerArm.rotation.z = Math.sin(time) * 0.2 + 0.5;
+        upperArm.rotation.z = Math.cos(time) * 0.3 - 0.5;
+        armGroup.rotation.y = Math.sin(time * 0.5) * 0.5;
 
-        // 2. Animate Arm (Enhanced Robotic Movement)
-        // Create dynamic targets for the arm to reach
-        if (!armGroup.userData || !armGroup.userData.targetPos) {
-            armGroup.userData = {
-                targetPos: new THREE.Vector3(15, -6, 15),
-                phase: 'scanning',
-                phaseTime: 0,
-                pickPos: new THREE.Vector3(15, -9, 15),
-                placePos: new THREE.Vector3(25, -6, 25)
-            };
-        }
-
-        const armData = armGroup.userData;
-        armData.phaseTime += delta;
-
-        // Update target based on phase
-        let currentTarget = new THREE.Vector3(15, -6, 15); // Default fallback
-        switch (armData.phase) {
-            case 'scanning':
-                // Scan around looking for work
-                armData.targetPos.set(
-                    20 + Math.sin(time * 0.3) * 8,
-                    -6 + Math.sin(time * 0.5) * 2,
-                    20 + Math.cos(time * 0.3) * 8
-                );
-                currentTarget.copy(armData.targetPos);
-                if (armData.phaseTime > 3) {
-                    armData.phase = 'reaching';
-                    armData.phaseTime = 0;
-                }
-                break;
-            case 'reaching':
-                // Reach down to pick up
-                armData.targetPos.copy(armData.pickPos);
-                currentTarget.copy(armData.targetPos);
-                if (armData.phaseTime > 1.5) {
-                    armData.phase = 'grasping';
-                    armData.phaseTime = 0;
-                }
-                break;
-            case 'grasping':
-                // Close gripper and lift
-                armData.targetPos.set(15, -4, 15);
-                currentTarget.copy(armData.targetPos);
-                if (armData.phaseTime > 1) {
-                    armData.phase = 'transporting';
-                    armData.phaseTime = 0;
-                }
-                break;
-            case 'transporting':
-                // Move to place position
-                armData.targetPos.copy(armData.placePos);
-                currentTarget.copy(armData.targetPos);
-                if (armData.phaseTime > 2) {
-                    armData.phase = 'placing';
-                    armData.phaseTime = 0;
-                }
-                break;
-            case 'placing':
-                // Lower down to place
-                armData.targetPos.set(25, -8, 25);
-                currentTarget.copy(armData.targetPos);
-                if (armData.phaseTime > 1) {
-                    armData.phase = 'scanning';
-                    armData.phaseTime = 0;
-                }
-                break;
-        }
-
-        // Simple inverse kinematics for 3-joint arm
-        const armBase = new THREE.Vector3().copy(armGroup.position);
-        const targetVector = new THREE.Vector3().subVectors(currentTarget, armBase);
-
-        // Base rotation to face target
-        const baseAngle = Math.atan2(targetVector.x, targetVector.z);
-        armGroup.rotation.y += (baseAngle - armGroup.rotation.y) * 0.02;
-
-        // Calculate arm segment angles (2D IK in XZ plane)
-        const targetDist = Math.sqrt(targetVector.x * targetVector.x + targetVector.z * targetVector.z);
-        const targetHeight = targetVector.y;
-
-        // Arm segment lengths (approximate based on geometry)
-        const l1 = 2; // lower arm length
-        const l2 = 2; // upper arm length
-
-        // 2D inverse kinematics for shoulder and elbow
-        if (targetDist > 0.1 && targetDist < l1 + l2) {
-            // Distance from shoulder to target in XZ plane
-            const r = targetDist;
-
-            // Elbow angle (θ2) using law of cosines
-            const cosElbow = (r * r + l1 * l1 - l2 * l2) / (2 * r * l1);
-            const elbowAngle = Math.acos(Math.max(-1, Math.min(1, cosElbow)));
-
-            // Shoulder angle (θ1) - angle to target
-            const shoulderToTarget = Math.atan2(targetVector.z, targetVector.x);
-
-            // Shoulder angle adjustment
-            const cosShoulder = (l1 * l1 + r * r - l2 * l2) / (2 * l1 * r);
-            const shoulderAngle = shoulderToTarget - Math.acos(Math.max(-1, Math.min(1, cosShoulder)));
-
-            // Apply angles with smoothing (convert to local rotations)
-            const currentLowerAngle = lowerArm.rotation.z;
-            const currentUpperAngle = upperArm.rotation.z;
-
-            // For proper IK, we need to set absolute angles, not incremental
-            lowerArm.rotation.z = shoulderAngle;
-            upperArm.rotation.z = elbowAngle - Math.PI; // Adjust for coordinate system
-        }
-
-        // Add some secondary motion for realism
-        lowerArm.rotation.x = Math.sin(time * 1.5 + armData.phaseTime) * 0.05;
-        upperArm.rotation.x = Math.sin(time * 2 + armData.phaseTime) * 0.03;
-
-        // Animate gripper based on phase
-        const gripperOpen = (armData.phase === 'scanning' || armData.phase === 'placing') ? 0.2 : 0;
-        gripper.rotation.z += (gripperOpen - gripper.rotation.z) * 0.1;
-
-        // Add subtle base movement
-        armGroup.position.y = -8 + Math.sin(time * 0.8) * 0.1;
-
-        // 3. Animate Cars
+        // 2. Car Logic (Patrol Mode)
         robotCars.forEach(car => {
             const data = car.userData;
-            const pos = car.position;
-            const target = data.target;
-
-            // Distance to target
-            const dist = pos.distanceTo(target);
-
-            // If we reached the target (or are very close), pick a new one
-            if (dist < 1) {
-                data.target = getRandomTarget();
-                // Ensure new target isn't the same as current position
-                while (data.target.distanceTo(pos) < 5) {
-                    data.target = getRandomTarget();
-                }
+            const targetVec = data.path[data.targetIndex];
+            
+            // Move
+            const dist = car.position.distanceTo(targetVec);
+            
+            if (dist < data.speed) {
+                // Arrived at corner
+                car.position.copy(targetVec);
+                
+                // Advance to next point in the square loop
+                data.targetIndex = (data.targetIndex + 1) % 4; // 0,1,2,3 -> 0
+                
+                // Snap Rotation instantly for robotic feel, or use lookAt
+                car.lookAt(data.path[data.targetIndex]);
+            } else {
+                // Move Forward
+                car.translateZ(data.speed); // Simple forward movement since we used lookAt
+                
+                // Wheels
+                data.wheels.forEach(w => w.rotation.x -= data.speed * 8);
+                
+                // Bobbing
+                car.position.y = CAR_Y + Math.sin(time * 20 + car.id) * 0.02;
             }
-
-            // --- MOVEMENT LOGIC (Steering) ---
-            
-            // Calculate direction vector to target
-            const direction = new THREE.Vector3().subVectors(target, pos).normalize();
-            
-            // Calculate desired angle
-            const targetRotation = Math.atan2(direction.x, direction.z); // Math.atan2(x, z) for Y-axis rotation
-
-            // Smoothly rotate car to face target (Interpolation)
-            // Determine shortest rotation path
-            let rotDiff = targetRotation - car.rotation.y;
-            // Normalize angle to -PI to PI
-            while (rotDiff > Math.PI) rotDiff -= Math.PI * 2;
-            while (rotDiff < -Math.PI) rotDiff += Math.PI * 2;
-            
-            car.rotation.y += rotDiff * 0.05; // Turn speed (lower is smoother)
-
-            // Move forward based on current rotation (Tank controls style)
-            const forwardDir = new THREE.Vector3(Math.sin(car.rotation.y), 0, Math.cos(car.rotation.y));
-            
-            // Collision Avoidance (Simple Repulsion)
-            let repulsion = new THREE.Vector3();
-            robotCars.forEach(otherCar => {
-                if (car === otherCar) return;
-                const d = car.position.distanceTo(otherCar.position);
-                if (d < 4) { // Too close
-                    const push = new THREE.Vector3().subVectors(car.position, otherCar.position).normalize();
-                    repulsion.add(push.multiplyScalar(0.05)); // Push away strength
-                }
-            });
-
-            // Apply movement
-            car.position.add(forwardDir.multiplyScalar(data.speed));
-            car.position.add(repulsion);
-
-            // Wheel rotation
-            data.wheels.forEach(w => w.rotation.x -= data.speed * 5);
-
-            // Bobbing effect
-            car.position.y = -9.5 + Math.sin(time * 5 + car.id) * 0.05;
         });
 
-        // Camera Orbit (Subtle)
-        camera.position.x = Math.sin(time * 0.1) * 25;
-        camera.position.z = Math.cos(time * 0.1) * 25;
-        camera.lookAt(0, -2, 0);
+        // 3. Camera Orbit
+        camera.position.x += ((Math.sin(time * 0.1) * 20) - camera.position.x) * 0.02;
+        camera.position.z += ((Math.cos(time * 0.1) * 20) - camera.position.z) * 0.02;
+        camera.lookAt(0, -5, 0);
 
         renderer.render(scene, camera);
     }
 
     animate();
-
+    
     window.addEventListener('resize', () => {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
