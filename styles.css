@@ -1275,7 +1275,15 @@ button {
     }
 
     .team-grid {
-        /* For mobile: single column, centered */
+        /* For mobile: two cards per row */
+    }
+
+    .team-grid .team-card {
+        width: calc(50% - 12px);
+    }
+
+    .center-grid .team-card {
+        width: calc(50% - 12px);
     }
 
     .contact-wrapper {
