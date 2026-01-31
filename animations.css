@@ -12,8 +12,9 @@
     background: linear-gradient(to bottom,
             rgba(255, 255, 255, 0),
             rgba(255, 255, 255, 0) 50%,
-            rgba(0, 0, 0, 0.1) 50%,
-            rgba(0, 0, 0, 0.1));
+            rgba(0, 122, 204, 0.05) 50%,
+            /* Subtle Electric Blue */
+            rgba(0, 122, 204, 0.05));
     background-size: 100% 4px;
     pointer-events: none;
     z-index: 999;
@@ -23,7 +24,8 @@
 /* 2. Glitch Text Effect */
 .glitch-text {
     position: relative;
-    color: var(--text-primary);
+    color: white;
+    /* Force white for hero text */
 }
 
 .glitch-text::before,
@@ -34,19 +36,22 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: var(--bg-primary);
+    background: var(--bg-dark);
+    /* Match Hero Background */
 }
 
 .glitch-text::before {
     left: 2px;
-    text-shadow: -2px 0 var(--cyber-blue);
+    text-shadow: -2px 0 var(--accent-primary);
+    /* Electric Blue */
     clip: rect(44px, 450px, 56px, 0);
     animation: glitch-anim 5s infinite linear alternate-reverse;
 }
 
 .glitch-text::after {
     left: -2px;
-    text-shadow: -2px 0 var(--accent-secondary);
+    text-shadow: -2px 0 var(--cta-primary);
+    /* Signal Orange */
     clip: rect(44px, 450px, 56px, 0);
     animation: glitch-anim2 5s infinite linear alternate-reverse;
 }
@@ -386,13 +391,62 @@
     }
 }
 
-.wheel-spin { transform-origin: center; transform-box: fill-box; animation: spin-wheel 0.8s linear infinite; }
-    .bot-body { animation: bounce-bot 0.6s ease-in-out infinite alternate; }
-    .sensor-pulse { opacity: 0; animation: pulse-wave 1.5s infinite; }
-    .delay-1 { animation-delay: 0.3s; }
-    .road-move { stroke-dasharray: 4 4; animation: move-road 0.5s linear infinite; }
+.wheel-spin {
+    transform-origin: center;
+    transform-box: fill-box;
+    animation: spin-wheel 0.8s linear infinite;
+}
 
-    @keyframes spin-wheel { 100% { transform: rotate(360deg); } }
-    @keyframes bounce-bot { 0% { transform: translateY(0); } 100% { transform: translateY(-2px); } }
-    @keyframes pulse-wave { 0% { opacity: 1; transform: scale(0.8) translateY(2px); transform-origin: 32px 14px; } 100% { opacity: 0; transform: scale(1.5) translateY(-2px); transform-origin: 32px 14px; } }
-    @keyframes move-road { to { stroke-dashoffset: -8; } }
+.bot-body {
+    animation: bounce-bot 0.6s ease-in-out infinite alternate;
+}
+
+.sensor-pulse {
+    opacity: 0;
+    animation: pulse-wave 1.5s infinite;
+}
+
+.delay-1 {
+    animation-delay: 0.3s;
+}
+
+.road-move {
+    stroke-dasharray: 4 4;
+    animation: move-road 0.5s linear infinite;
+}
+
+@keyframes spin-wheel {
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes bounce-bot {
+    0% {
+        transform: translateY(0);
+    }
+
+    100% {
+        transform: translateY(-2px);
+    }
+}
+
+@keyframes pulse-wave {
+    0% {
+        opacity: 1;
+        transform: scale(0.8) translateY(2px);
+        transform-origin: 32px 14px;
+    }
+
+    100% {
+        opacity: 0;
+        transform: scale(1.5) translateY(-2px);
+        transform-origin: 32px 14px;
+    }
+}
+
+@keyframes move-road {
+    to {
+        stroke-dashoffset: -8;
+    }
+}
